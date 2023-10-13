@@ -11,6 +11,7 @@ import random
 import numpy as np
 import os
 from pathlib import Path
+from tqdm.auto import tqdm
 
 from monai.losses import DiceLoss
 from monai.data import Dataset, DataLoader
@@ -430,9 +431,9 @@ class Client(object):
         net.train()
         optimizer_client = torch.optim.AdamW(net.parameters(), lr = self.lr) 
         
-        for iter in range(self.local_ep):
+        for iter in tqdm(range(self.local_ep),desc='client train'):
             len_batch = len(self.ldr_train)
-            for batch_idx, batch_data in enumerate(self.ldr_train):
+            for batch_idx, batch_data in tqdm(enumerate(self.ldr_train),total=len(self.ldr_train)):
                 images, labels = batch_data['image'], batch_data['label']
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer_client.zero_grad()
@@ -457,7 +458,7 @@ class Client(object):
            
         with torch.no_grad():
             len_batch = len(self.ldr_test)
-            for batch_idx, batch_data in enumerate(self.ldr_test):
+            for batch_idx, batch_data in tqdm(enumerate(self.ldr_test),total=len(self.ldr_test),desc='client eval'):
                 images, labels = batch_data['image'], batch_data['label']
                 images, labels = images.to(self.device), labels.to(self.device)
                 #---------forward prop-------------
@@ -590,12 +591,12 @@ builder = KITSDataBuilder()
 
 # Federation takes place after certain local epochs in train() client-side
 # this epoch is global epoch, also known as rounds
-for iter in range(epochs):
+for iter in tqdm(range(epochs)):
     m = max(int(frac * num_users), 1)
     idxs_users = np.random.choice(range(num_users), m, replace = False)
     w_locals_client = []
       
-    for idx in idxs_users:
+    for idx in tqdm(idxs_users):
         dataset_train, dataset_test = builder.get_datasets(idx)
         local = Client(net_glob_client, idx, lr, device, dataset_train = dataset_train, dataset_test = dataset_test)
         # Training ------------------
