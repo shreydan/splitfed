@@ -463,7 +463,7 @@ class Client(object):
                 images, labels = images.to(self.device), labels.to(self.device)
                 #---------forward prop-------------
                 fx = net(images)
-                skips = [s.detach().clone().requires_grad_(True) for s in net.skips]
+                skips = [s.detach().clone() for s in net.skips]
             
                 # Sending activations to server 
                 evaluate_server(fx, labels, skips, self.idx, len_batch, ell)
