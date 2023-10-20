@@ -589,7 +589,7 @@ net_glob_client.train()
 w_glob_client = net_glob_client.state_dict()
 
 builder = KITSDataBuilder()
-
+all_datasets = [builder.get_datasets(idx) for idx in range(num_users)]
 # Federation takes place after certain local epochs in train() client-side
 # this epoch is global epoch, also known as rounds
 for iter in tqdm(range(epochs)):
@@ -598,7 +598,7 @@ for iter in tqdm(range(epochs)):
     w_locals_client = []
       
     for idx in tqdm(idxs_users):
-        dataset_train, dataset_test = builder.get_datasets(idx)
+        dataset_train, dataset_test = all_datasets[idx]
         local = Client(net_glob_client, idx, lr, device, dataset_train = dataset_train, dataset_test = dataset_test)
         # Training ------------------
         w_client = local.train(net = copy.deepcopy(net_glob_client).to(device))
