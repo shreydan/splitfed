@@ -66,7 +66,7 @@ def prGreen(skk): print("\033[92m {}\033[00m" .format(skk))
 #===================================================================
 # No. of users
 num_users = 6
-epochs = 1
+epochs = 30
 frac = 1        # participation of clients; if 1 then 100% clients participate in SFLV2
 lr = 6e-4
 
@@ -179,7 +179,7 @@ class ServerSideModel(nn.Module):
 
         x = self.final_context(x)
 
-        skips = skips[::-1]
+        skips = self.skips[::-1]
 
         for u in range(len(self.tu)):
             x = self.tu[u](x)
@@ -440,7 +440,7 @@ class Client(object):
                 #---------forward prop-------------
                 fx = net(images)
                 client_fx = fx.clone().detach().requires_grad_(True)
-                skips = fx.skips
+                skips = [s.detach().clone().requires_grad_(True) for s in net.skips]
                 # Sending activations to server and receiving gradients from server
                 dfx = train_server(client_fx, labels, skips, iter, self.local_ep, self.idx, len_batch)
                 
@@ -463,9 +463,10 @@ class Client(object):
                 images, labels = images.to(self.device), labels.to(self.device)
                 #---------forward prop-------------
                 fx = net(images)
-                
+                skips = [s.detach().clone().requires_grad_(True) for s in net.skips]
+            
                 # Sending activations to server 
-                evaluate_server(fx, labels, self.idx, len_batch, ell)
+                evaluate_server(fx, labels, skips, self.idx, len_batch, ell)
             
             #prRed('Client{} Test => Epoch: {}'.format(self.idx, ell))
             
