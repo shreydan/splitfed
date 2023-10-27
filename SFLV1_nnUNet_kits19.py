@@ -54,7 +54,7 @@ if torch.cuda.is_available():
 
 
 #===================================================================
-program = "SFLV2 nnUNet on KiTS19"
+program = "SFLV1 nnUNet on KiTS19"
 print(f"---------{program}----------")              # this is to identify the program in the slurm outputs files
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -452,9 +452,10 @@ class Client(object):
         net.train()
         optimizer_client = torch.optim.AdamW(net.parameters(), lr = self.lr) 
         
-        for iter in range(self.local_ep):
+        for iter in tqdm(range(self.local_ep)):
             len_batch = len(self.ldr_train)
-            for batch_idx, (images, labels) in enumerate(self.ldr_train):
+            for batch_idx, batch_data in tqdm(enumerate(self.ldr_train),total=len(self.ldr_train)):
+                images, labels = batch_data['image'], batch_data['label']
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer_client.zero_grad()
                 #---------forward prop-------------
@@ -479,7 +480,8 @@ class Client(object):
            
         with torch.no_grad():
             len_batch = len(self.ldr_test)
-            for batch_idx, (images, labels) in enumerate(self.ldr_test):
+            for batch_idx, batch_data in tqdm(enumerate(self.ldr_test),total=len(self.ldr_test)):
+                images, labels = batch_data['image'], batch_data['label']
                 images, labels = images.to(self.device), labels.to(self.device)
                 #---------forward prop-------------
                 fx = net(images)
@@ -614,12 +616,12 @@ all_datasets = [builder.get_datasets(idx) for idx in range(num_users)]
 
 # Federation takes place after certain local epochs in train() client-side
 # this epoch is global epoch, also known as rounds
-for iter in range(epochs):
+for iter in tqdm(range(epochs),desc='epochs'):
     m = max(int(frac * num_users), 1)
     idxs_users = np.random.choice(range(num_users), m, replace = False)
     w_locals_client = []
       
-    for idx in idxs_users:
+    for idx in tqdm(idxs_users,desc='clients'):
         dataset_train, dataset_test = all_datasets[idx]
         local = Client(net_glob_client, idx, lr, device, dataset_train = dataset_train, dataset_test = dataset_test)
         # Training ------------------
