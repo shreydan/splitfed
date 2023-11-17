@@ -32,8 +32,6 @@ from monai.transforms import (
     CenterSpatialCropd
 )
 
-from nnUNet.nnunet.network_architecture.generic_UNet import ConvDropoutNormNonlin, Generic_UNet
-from nnUNet.nnunet.network_architecture.initialization import InitWeights_He
 
 import torchmetrics
 
@@ -55,7 +53,7 @@ if torch.cuda.is_available():
 
 
 #===================================================================
-program = "SFLV2 nnUNet on KiTS19"
+program = "SFLV2 nnUNet on IXI TINY"
 print(f"---------{program}----------")              # this is to identify the program in the slurm outputs files
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -87,7 +85,7 @@ def get_full_model():
     )
     return model
 
-pretrained_model_path = '/data2/Shreyas/SPLIT_LEARNING/medical_split_learning/Datasets/IXI/models/pretrained/model.pt'
+pretrained_model_path = './ixi.pt'
 
 #=====================================================================================================
 #                           Client-side Model definition
@@ -129,6 +127,7 @@ print(net_glob_client)
 class ServerSideModel(nn.Module):
     def __init__(self,pretrained=True,skips=[]):
         super().__init__()
+        full_model = get_full_model()
         model_state_dict = torch.load(pretrained_model_path)
         full_model.load_state_dict(model_state_dict)
         full_model = full_model.model
@@ -149,7 +148,7 @@ class ServerSideModel(nn.Module):
         x4 = self.res4(x3)
         self.skips.extend([x3,x4])
 
-        x5 = self.res5(x)
+        x5 = self.res5(x4)
         
         skips = self.skips[::-1]
         
@@ -459,7 +458,7 @@ class IXIDataBuilder:
         self.thresholded_sites_path = Path('./data/ixitiny.csv').resolve()
         self.thresholded_sites = pd.read_csv(self.thresholded_sites_path)
         self.full_data_size = len(self.thresholded_sites)
-        self.data_dir = Path('/data2/Shreyas/SPLIT_LEARNING/data/IXITiny/data').resolve()
+        self.data_dir = Path('/data2/Shreyas/SPLIT_LEARNING/data/ixitiny/ixi_tiny').resolve()
         
 
     def get_client_cases(self,client_id, pool=False):
